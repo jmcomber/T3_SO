@@ -46,3 +46,16 @@ struct indice
 	Indireccion* struct indirect;
 };
 typedef struct indice Indice;
+
+
+
+void cz_mount(char* disk_filename);
+czFILE* cz_open(char* filename, char mode);
+int cz_exists(char* filename);
+int cz_read(czFILE* file_desc, void* buffer, int nbytes);
+int cz_write(czFILE* file_desc, void* buffer, int nbytes);
+int cz_close(czFILE* file_desc);
+int cz_mv(char* orig, char *dest);
+int cz_cp(char* orig, char* dest);
+int cz_rm(char* filename);
+void cz_ls();
