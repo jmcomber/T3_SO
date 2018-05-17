@@ -16,10 +16,12 @@ struct dir_entrada
 	char name[11];
 	czFILE* puntero;
 };
+typedef struct dir_entrada Dir_Entrada;
 
 
-struct directorio {
-	struct dir_entrada* entradas[64];
+struct directorio 
+{
+	Dir_Entrada* entradas[64];
 };
 typedef struct directorio Directorio;
 
@@ -43,7 +45,7 @@ struct indice
 
 	Bloque* bloques[252]; //o hacerlos int no mas, pa que struct
 
-	Indireccion* struct indirect;
+	struct indirect * Indireccion ;
 };
 typedef struct indice Indice;
 
