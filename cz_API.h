@@ -12,7 +12,7 @@ typedef struct file czFILE;
 
 struct dir_entrada
 {
-	int valid;
+	char valid;
 	char name[11];
 	czFILE* puntero;
 };
