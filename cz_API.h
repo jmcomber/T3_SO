@@ -1,11 +1,11 @@
-
-
 struct file
 {
   char name[11];
   int open;
   int write;
-
+  unsigned int puntero_indice;
+  unsigned int last_byte;
+  int nro_entrada;
 };
 typedef struct file czFILE;
 
@@ -14,7 +14,7 @@ struct dir_entrada
 {
 	char valid;
 	char name[11];
-	czFILE* puntero;
+	int puntero;
 };
 typedef struct dir_entrada Dir_Entrada;
 
@@ -25,11 +25,11 @@ struct directorio
 };
 typedef struct directorio Directorio;
 
-struct bloque
-{
-	// 
-};
-typedef struct bloque Bloque;
+// struct bloque
+// {
+// 	// 
+// };
+// typedef struct bloque Bloque;
 
 
 struct indirect
@@ -39,13 +39,11 @@ struct indirect
 
 struct indice
 {
-	int file_size;   //es un int?
-	int created_at;  //es un int?
-	int modified_at; //es un int?
-
-	Bloque* bloques[252]; //o hacerlos int no mas, pa que struct
-
-	struct indirect * Indireccion ;
+    unsigned int file_size;
+    unsigned int created_at;
+    unsigned int modified_at;
+    unsigned char bloques[252][4];
+    struct indirect * Indireccion ;
 };
 typedef struct indice Indice;
 
