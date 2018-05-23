@@ -539,7 +539,7 @@ int cz_close(czFILE* file_desc) {
 		return 1;
 	}
 	file_desc -> open = 0;
-	return -1;
+	return 0;
 }
 
 void escribir_nueva_entrada(char * filename, int numero_entrada, int n_bloque){
