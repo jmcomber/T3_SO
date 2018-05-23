@@ -65,6 +65,17 @@ int cz_rm(char* filename) {
 		if (direct -> entradas[i] -> valid && strcmp(direct -> entradas[i] -> name, filename) == 0) {
 			direct -> entradas[i] -> valid = 0;
 			fprintf(stderr, "Se eliminó %s\n", filename);
+			Indice* ind = create_Indice(get_block(direct -> entradas[i] -> puntero));
+			for (int j=0; j<252;j++) {
+				if (ind -> file_size > 1024*j) {
+					setear_bitmap_libre(ind -> bloques[j]);
+				}
+			}
+			int y = 252*1024;
+			while (y < ind -> file_size) {
+				setear_bitmap_libre(ind -> indireccion -> bloques[y/1024 - 252]);
+				y += 1024;
+			}
 			return 0;
 		}
 	}
@@ -121,12 +132,24 @@ int cz_cp(char* orig, char* dest){
 
 	strcpy(direct -> entradas[orig_entr] -> name, direct -> entradas[dest_entr] -> name);
 
+	for (int j=0; j<252;j++) {
+		if (dest_ind -> file_size > 1024*j) {
+			setear_bitmap_libre(dest_ind -> bloques[j]);
+		}
+	}
+	int y = 252*1024;
+	while (y < dest_ind -> file_size) {
+		setear_bitmap_libre(dest_ind -> indireccion -> bloques[y/1024 - 252]);
+		y += 1024;
+	}
+
 	for (int i=0; i<252; i++) {
 		dest_ind -> bloques[i] = 0;
 	}
 	dest_ind -> indireccion = NULL;
 	
 	unsigned int copied_so_far = 0;
+	dest_ind -> file_size = orig_ind -> file_size;
 	while (copied_so_far < orig_ind -> file_size) {
 		
 		unsigned int n_bl = copied_so_far / 1024;
@@ -142,6 +165,7 @@ int cz_cp(char* orig, char* dest){
 			dest_ind -> indireccion -> bloques[(copied_so_far / 1024) - 252] = new_bl;
 		}
 	
+
 		FILE* fp;
 		fp = fopen(nombre_disco, "rb+");
 		fseek(fp, 1024 * n_bl, SEEK_SET);
@@ -153,6 +177,50 @@ int cz_cp(char* orig, char* dest){
 
 		setear_bitmap_ocupado(new_bl);
 	}
+
+	FILE *fptr;
+	if ((fptr = fopen(nombre_disco,"rb+")) == NULL){
+	   fprintf(stderr, "Error! opening file");
+	   // Program exits if the file pointer returns NULL.
+	   exit(1);
+	}
+	fseek(fptr, direct -> entradas[dest_entr] -> puntero * 1024, SEEK_SET);
+
+	unsigned char primer_digito = dest_ind -> file_size / 16777216;
+	unsigned char segundo_digito = dest_ind -> file_size / 65536;
+	unsigned char tercer_digito = dest_ind -> file_size / 256;
+	unsigned char cuarto_digito = dest_ind -> file_size % 256;
+
+	// escribimos fecha de creacion
+	fwrite(&primer_digito,sizeof(unsigned char),1,fptr);
+	fwrite(&segundo_digito,sizeof(unsigned char),1,fptr);
+	fwrite(&tercer_digito,sizeof(unsigned char),1,fptr);
+	fwrite(&cuarto_digito,sizeof(unsigned char),1,fptr);
+
+
+	time_t seconds;
+	seconds = time(NULL);
+	primer_digito = seconds / 16777216;
+	segundo_digito = seconds / 65536;
+	tercer_digito = seconds / 256;
+	cuarto_digito = seconds % 256;
+
+	// escribimos fecha de creacion
+	fwrite(&primer_digito,sizeof(unsigned char),1,fptr);
+	fwrite(&segundo_digito,sizeof(unsigned char),1,fptr);
+	fwrite(&tercer_digito,sizeof(unsigned char),1,fptr);
+	fwrite(&cuarto_digito,sizeof(unsigned char),1,fptr);
+
+	// escribimos fecha de update
+	fwrite(&primer_digito,sizeof(unsigned char),1,fptr);
+	fwrite(&segundo_digito,sizeof(unsigned char),1,fptr);
+	fwrite(&tercer_digito,sizeof(unsigned char),1,fptr);
+	fwrite(&cuarto_digito,sizeof(unsigned char),1,fptr);
+
+	fclose(fptr);
+
+	return 0;
+
 }
 
 int cz_exists(char* filename) {
@@ -239,6 +307,21 @@ void setear_bitmap_ocupado(int n_bloque){
 	fseek(fptr, 1024 + n_bloque, SEEK_SET);
 	// inicializamos el tamaño en 0
 	unsigned char usado = '1';
+	fwrite(&usado,sizeof(unsigned char),1,fptr);
+   	fclose(fptr);
+}
+
+void setear_bitmap_libre(int n_bloque){
+	FILE *fptr;
+	if ((fptr = fopen(nombre_disco,"rb+")) == NULL){
+	   fprintf(stderr, "Error! opening file");
+	   // Program exits if the file pointer returns NULL.
+	   exit(1);
+	}
+	// me paro al 
+	fseek(fptr, 1024 + n_bloque, SEEK_SET);
+	// inicializamos el tamaño en 0
+	unsigned char usado = '0';
 	fwrite(&usado,sizeof(unsigned char),1,fptr);
    	fclose(fptr);
 }
