@@ -533,6 +533,15 @@ int cz_write(czFILE* file_desc, void* buffer, int nbytes){
 	actualizar_headers_indice(indice, numero_bloque_indice);
 
 }
+
+int cz_close(czFILE* file_desc) {
+	if (!file_desc || !file_desc -> open) {
+		return 1;
+	}
+	file_desc -> open = 0;
+	return -1;
+}
+
 void escribir_nueva_entrada(char * filename, int numero_entrada, int n_bloque){
 	FILE * fp = fopen(nombre_disco, "rb+");
 	fseek(fp, numero_entrada*16, SEEK_SET);

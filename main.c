@@ -13,8 +13,9 @@ int main(int argc, char *argv[])
 
     cz_ls();
     czFILE* texto = cz_open("texto.txt", 'r');
-    unsigned char* buff = malloc(200);
-    cz_read(texto, buff, 200);
-    printf("%s\n", buff);
+    // unsigned char* buff = malloc(200);
+    // cz_read(texto, buff, 200);
+    // printf("%s\n", buff);
+    printf("%d\n", cz_close(texto));
 	return 0;
 }
