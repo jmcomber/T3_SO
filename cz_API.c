@@ -398,11 +398,16 @@ Indice* create_Indice(unsigned char bloque[1024]) {
 }
 
 int cz_read(czFILE* file_desc, void* buffer, int nbytes) {
-	if (file_desc -> write) {
+	if (file_desc -> write || !file_desc -> read) {
 		fprintf(stderr, "Archivo no puede leerse porque se abrió en modo escritura\n");
 		return -1;
 	}
 	Indice* indice = create_Indice(get_block(direct -> entradas[file_desc -> nro_entrada] -> puntero));
+
+	if (nbytes > indice -> file_size) {
+		nbytes = indice -> file_size;
+	}
+
 	int read_so_far = 0;
 	int bl_idx = file_desc -> last_byte / 1024;
 	int offset = file_desc -> last_byte - (1024 * bl_idx);
