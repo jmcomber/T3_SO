@@ -116,40 +116,33 @@ int cz_cp(char* orig, char* dest){
 	}
 
 	int orig_entr;
-	int dest_entr;
 	Indice* orig_ind;
 	Indice* dest_ind;
 	for (int i=0; i<64; i++) {
 		if (direct -> entradas[i] -> valid && strcmp(direct -> entradas[i] -> name, orig) == 0) {
 			orig_ind = create_Indice(get_block(direct -> entradas[i] -> puntero));
 			orig_entr = i;
+			memcpy(dest_ind, orig_ind, sizeof(Indice));
 		} 
-		if (direct -> entradas[i] -> valid && strcmp(direct -> entradas[i] -> name, dest) == 0) {
-			dest_ind = create_Indice(get_block(direct -> entradas[i] -> puntero));
+	}
+
+	int dest_entr;
+	for (int i=0; i<64; i++) {
+		if (! direct -> entradas[i] -> valid) {
 			dest_entr = i;
+			break;
+		}
+		if (i == 63) {
+			fprintf(stderr, "Error: no hay espacio en bloque directorio para este nuevo archivo\n");
+			return -1;
 		}
 	}
 
-	strcpy(direct -> entradas[orig_entr] -> name, direct -> entradas[dest_entr] -> name);
-
-	for (int j=0; j<252;j++) {
-		if (dest_ind -> file_size > 1024*j) {
-			setear_bitmap_libre(dest_ind -> bloques[j]);
-		}
-	}
-	int y = 252*1024;
-	while (y < dest_ind -> file_size) {
-		setear_bitmap_libre(dest_ind -> indireccion -> bloques[y/1024 - 252]);
-		y += 1024;
-	}
-
-	for (int i=0; i<252; i++) {
-		dest_ind -> bloques[i] = 0;
-	}
-	dest_ind -> indireccion = NULL;
+	direct -> entradas[dest_entr] -> valid = 1;
+	strcpy(direct -> entradas[dest_entr] -> name, direct -> entradas[orig_entr] -> name);
+	direct -> entradas[dest_entr] -> puntero = encontrar_bloque_libre();
 	
 	unsigned int copied_so_far = 0;
-	dest_ind -> file_size = orig_ind -> file_size;
 	while (copied_so_far < orig_ind -> file_size) {
 		
 		unsigned int n_bl = copied_so_far / 1024;
@@ -218,6 +211,9 @@ int cz_cp(char* orig, char* dest){
 	fwrite(&cuarto_digito,sizeof(unsigned char),1,fptr);
 
 	fclose(fptr);
+
+
+	// ESCRIBIR BLOQUE DIRECTORIO AL ARCHIVO?
 
 	return 0;
 
@@ -591,7 +587,7 @@ void escribir_dato(int nuevo_bloque_datos, int posicion, void * dato, int posici
 
 void setear_bloque_datos(Indice * bloque_indice, int numero_bloque_indice, int bloques_completados, int nuevo_bloque_datos){
 	// Aqui los guardo como unsigned int
-	printf("Escribiendo en el bloque indice, nº %i, en la posicion %i, al bloque de datos %i\n", numero_bloque_indice, bloques_completados, nuevo_bloque_datos);
+	fprintf(stderr, "Escribiendo en el bloque indice, nº %i, en la posicion %i, al bloque de datos %i\n", numero_bloque_indice, bloques_completados, nuevo_bloque_datos);
 	bloque_indice -> bloques[bloques_completados] = nuevo_bloque_datos;
 	// Y ahora escribo en el disco
 	FILE * fp = fopen(nombre_disco, "rb+");
@@ -656,7 +652,7 @@ void actualizar_headers_indice(Indice * indice, int n_bloque){
 	fwrite(&segundo_digito_f,sizeof(unsigned char),1,fp);
 	fwrite(&tercer_digito_f,sizeof(unsigned char),1,fp);
 	fwrite(&cuarto_digito_f,sizeof(unsigned char),1,fp);
-	printf("Actualizando indices: Nuevo Tamaño: %i, Nueva fecha: %i \n", indice -> file_size, seconds);
+	fprintf(stderr, "Actualizando indices: Nuevo Tamaño: %i, Nueva fecha: %i \n", indice -> file_size, seconds);
 
 	fclose(fp);
 }
