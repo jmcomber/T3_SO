@@ -77,3 +77,4 @@ void actualizar_headers_indice(Indice * indice, int numero_bloque_indice);
 Indice* create_Indice(unsigned char bloque[1024]);
 unsigned char* get_block(int nro_bloque);
 void setear_bitmap_libre(int n_bloque);
+void cambiar_nombre_en_disco(int i, char * dest);
