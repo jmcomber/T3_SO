@@ -328,33 +328,36 @@ czFILE* cz_open(char* filename, char mode) {
 		
 				// Buscamos el primer BITMAP con 0
 				// Usamos este flag porque no se como hacer break 2 veces
-				int encontrado = 0;
-				for (int z=0; z < 8; z ++){
-					//Recorremos cada bloque del bitmpap
-					for (int j= 0; j < 1023; j++){
-						// Si: todavia no encuentro, el bit map esta en 0 y no estoy usando uno de los de al ppo
-						if (encontrado == 0 && bitmaps[z][j] == 0 && (z > 0 || j > 8)){
-							// Este es el numero del bloque indice 
-							int n_bloque = z * 1024 + j;
-							// marcamos como ocupado el bloque
-							bitmaps[z][j] = 1;
-							setear_bitmap_ocupado(n_bloque);
-							// guardamos en bloque directorio este numero, indice es unsigned int
-							direct -> entradas[i] -> puntero = n_bloque;	
-							escribir_nueva_entrada(filename, i, n_bloque);
-							escribir_fecha_creacion(n_bloque);
-							encontrado = 1;
-							file -> puntero_indice = n_bloque;
-						}
-					}
-				}
+				printf("1\n");
+				int n_bloque = encontrar_bloque_libre();
+				printf("2\n");
+				setear_bitmap_ocupado(n_bloque);
+				printf("3\n");
+				direct -> entradas[i] -> puntero = n_bloque;	
+				escribir_nueva_entrada(filename, i, n_bloque);
+				escribir_fecha_creacion(n_bloque);
+				file -> puntero_indice = n_bloque;
 				break;
+			
 			}
 		}
 	}
 	return file;
 }
 
+// void setear_bitmap_ocupado(int n_bloque){
+// 	FILE *fptr;
+// 	if ((fptr = fopen(nombre_disco,"rb+")) == NULL){
+// 	   fprintf(stderr, "Error! opening file");
+// 	   // Program exits if the file pointer returns NULL.
+// 	   exit(1);
+// 	}
+// 	// me paro al 
+// 	fseek(fptr, 1024 + n_bloque, SEEK_SET);
+// 	// inicializamos el tamaño en 0
+// 	unsigned char usado = 1;
+// 	fwrite(&usado,sizeof(unsigned char),1,fptr);
+//    	fclose(fptr);
 void setear_bitmap_ocupado(int n_bloque){
 	FILE *fptr;
 	if ((fptr = fopen(nombre_disco,"rb+")) == NULL){
@@ -362,12 +365,31 @@ void setear_bitmap_ocupado(int n_bloque){
 	   // Program exits if the file pointer returns NULL.
 	   exit(1);
 	}
-	// me paro al 
-	fseek(fptr, 1024 + n_bloque, SEEK_SET);
-	// inicializamos el tamaño en 0
-	unsigned char usado = 1;
-	fwrite(&usado,sizeof(unsigned char),1,fptr);
-   	fclose(fptr);
+	int byte_a_leer = (n_bloque / 8);
+	fseek(fptr, 1024 + byte_a_leer, SEEK_SET);
+	unsigned char cur_val;
+	fread(&cur_val, sizeof(unsigned char), 1, fptr);
+	printf("Curr value(1): %u\n", cur_val);
+	int suma = 1;
+	for (int i=1; i< 8 - n_bloque % 8; i++) {
+		suma *= 2;
+	}
+	// suma es 2^(8 - n_bloque % 8)
+	fclose(fptr);
+	FILE *fp;
+	if ((fp = fopen(nombre_disco,"rb+")) == NULL){
+	   fprintf(stderr, "Error! opening file");
+	   // Program exits if the file pointer returns NULL.
+	   exit(1);
+	}
+	printf("Suma: %i\n", suma);
+	printf("Curr value(2): %u\n", cur_val);
+
+	cur_val += suma;
+	printf("Voy a copiar el %u al disco\n", cur_val);
+	fseek(fp, 1024 + byte_a_leer, SEEK_SET);
+	fwrite(&cur_val, sizeof(unsigned char), 1, fp);
+	fclose(fp);
 }
 
 void setear_bitmap_libre(int n_bloque){
@@ -377,13 +399,28 @@ void setear_bitmap_libre(int n_bloque){
 	   // Program exits if the file pointer returns NULL.
 	   exit(1);
 	}
-	// me paro al 
-	fseek(fptr, 1024 + n_bloque, SEEK_SET);
-	// inicializamos el tamaño en 0
-	unsigned char usado = 0;
-	fwrite(&usado,sizeof(unsigned char),1,fptr);
-   	fclose(fptr);
+	int byte_a_leer = (n_bloque / 8);
+	fseek(fptr, 1024 + byte_a_leer, SEEK_SET);
+	unsigned char cur_val;
+	fread(&cur_val, sizeof(unsigned char), 1, fptr);
+	int suma = 1;
+	for (int i=1; i< 8 - n_bloque % 8; i++) {
+		suma *= 2;
+	}
+	// suma es 2^(8 - n_bloque % 8)
+	fclose(fptr);
+	FILE *fp;
+	if ((fp = fopen(nombre_disco,"rb+")) == NULL){
+	   fprintf(stderr, "Error! opening file");
+	   // Program exits if the file pointer returns NULL.
+	   exit(1);
+	}
+	cur_val -= suma;
+	fseek(fp, 1024 + byte_a_leer, SEEK_SET);
+	fwrite(&cur_val, sizeof(unsigned char), 1, fp);
+	fclose(fp);
 }
+
 
 
 void escribir_fecha_creacion(int n_bloque){
@@ -617,15 +654,54 @@ void escribir_nueva_entrada(char * filename, int numero_entrada, int n_bloque){
 
 }
 
+// int encontrar_bloque_libre(){
+// 	for (int z=0; z < 8; z ++){
+// 		//Recorremos cada bloque del bitmpap
+// 		for (int j= 0; j < 1023; j++){
+// 			// Si: todavia no encuentro, el bit map esta en 0 y no estoy usando uno de los de al ppo
+// 			if (bitmaps[z][j] == 0 && (z > 0 || j > 8)){
+// 				int n_bloque = z * 1024 + j;
+// 				bitmaps[z][j] = 1;	
+// 				return n_bloque;
+// 			}
+// 		}
+// 	}
+// }
 int encontrar_bloque_libre(){
 	for (int z=0; z < 8; z ++){
 		//Recorremos cada bloque del bitmpap
 		for (int j= 0; j < 1023; j++){
 			// Si: todavia no encuentro, el bit map esta en 0 y no estoy usando uno de los de al ppo
-			if (bitmaps[z][j] == 0 && (z > 0 || j > 8)){
-				int n_bloque = z * 1024 + j;
-				bitmaps[z][j] = 1;	
-				return n_bloque;
+			
+			if (bitmaps[z][j] < 255) { //hay alguno libre aca
+				int off = 0;
+				if (bitmaps[z][j] < 128) { //el primer bit esta en 0
+					bitmaps[z][j] += 128;
+					// off = 0;
+				} else if (bitmaps[z][j] < 128 + 64) { // el seugndo bit esta en 0
+					bitmaps[z][j] += 64;
+					off = 1;
+				} else if (bitmaps[z][j] < 128 + 64 + 32) { // el tercer bit esta en 0
+					bitmaps[z][j] += 32;
+					off = 2;
+				} else if (bitmaps[z][j] < 128 + 64 + 32 + 16) { // el tercer bit esta en 0
+					bitmaps[z][j] += 16;
+					off = 3;
+				} else if (bitmaps[z][j] < 128 + 64 + 32 + 16 + 8) { // el tercer bit esta en 0
+					bitmaps[z][j] += 8;
+					off = 4;
+				} else if (bitmaps[z][j] < 128 + 64 + 32 + 16 + 8 + 4) { // el tercer bit esta en 0
+					bitmaps[z][j] += 4;
+					off = 5;
+				} else if (bitmaps[z][j] < 128 + 64 + 32 + 16 + 8 + 4 + 2) { // el tercer bit esta en 0
+					bitmaps[z][j] += 2;
+					off = 6;
+				} else {
+					bitmaps[z][j] += 1;
+					off = 7;
+				}
+				printf("Encontre bloque libre: %i\n", (1024 * 8 * z) + (8 * j) + off);
+				return (1024 * 8 * z) + (8 * j) + off;
 			}
 		}
 	}
@@ -713,5 +789,13 @@ void cambiar_nombre_en_disco(int i, char * dest){
 	FILE * fp = fopen(nombre_disco, "rb+");	
 	fseek(fp, 16 * i +  1 , SEEK_SET);
 	fwrite(dest,sizeof(char),11,fp);
+}
+
+int cz_close(czFILE* file_desc) {
+	if (!file_desc || !file_desc -> open) {
+		return 1;
+	}
+	file_desc -> open = 0;
+	return 0;
 }
 
