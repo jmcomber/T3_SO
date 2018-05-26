@@ -54,51 +54,6 @@ void cz_ls() {
 	}
 }
 
-int cz_rm(char* filename) {
-	for (int i=0; i<64; i++) {
-		if (direct -> entradas[i] -> valid && strcmp(direct -> entradas[i] -> name, filename) == 0) {
-			direct -> entradas[i] -> valid = 0;
-			fprintf(stderr, "Se eliminó %s\n", filename);
-			Indice* ind = create_Indice(get_block(direct -> entradas[i] -> puntero));
-			for (int j=0; j<252;j++) {
-				if (ind -> file_size > 1024*j) {
-					setear_bitmap_libre(ind -> bloques[j]);
-				}
-			}
-			int y = 252*1024;
-			while (y < ind -> file_size) {
-				setear_bitmap_libre(ind -> indireccion -> bloques[y/1024 - 252]);
-				y += 1024;
-			}
-			return 0;
-		}
-	}
-	fprintf(stderr, "No se encontró a %s\n", filename);
-	return -1;
-}
-
-int cz_mv(char* orig, char *dest) {
-	char origen[11];
-	Dir_Entrada* entrada_origen;
-	char destino[11];
-	for (int i=0; i<64; i++) {
-		if (direct -> entradas[i] -> valid && strcmp(direct -> entradas[i] -> name, dest) == 0) {
-			fprintf(stderr, "Nombre ya existente: %s ya es un archivo\n", dest);
-			return -1;
-		}
-	}
-	for (int i=0; i<64; i++) {
-		if (direct -> entradas[i] -> valid && strcmp(direct -> entradas[i] -> name, orig) == 0) {
-			strcpy(direct -> entradas[i] -> name, dest);
-			cambiar_nombre_en_disco(i, dest);
-			return 0;
-		}
-	}
-	fprintf(stderr, "No se encontró el archivo con nombre %s \n",orig);
-	return -1;
-}
-
-
 int cz_cp(char* orig, char* dest){
 	if (strcmp(orig, dest) == 0){
 		fprintf(stderr, "Nombres deben ser distintos\n");
@@ -170,10 +125,10 @@ int cz_cp(char* orig, char* dest){
 		fread(buffer, 1024, 1, fp);
 		fclose(fp);
 		fp = fopen(nombre_disco, "rb+");
-		printf("buffer es %s\n", buffer);
+		//printf("buffer es %s\n", buffer);
 		fseek(fp, 1024 * new_bl, SEEK_SET);
-		printf("new_bl es %d\n\n", new_bl);
-		printf("n_bl es %d\n\n", n_bl);
+		//printf("new_bl es %d\n\n", new_bl);
+		//printf("n_bl es %d\n\n", n_bl);
 		// for (int j=0; j<1024; j++) {
 		// 	printf("%u\n", buffer[j]);
 		// 	fwrite(&buffer[j], sizeof(unsigned char), 1, fp);
@@ -241,7 +196,7 @@ int cz_cp(char* orig, char* dest){
 		fwrite(&cuarto_digito,sizeof(unsigned char),1,fptr);
 	}
 
-
+	dest_ind -> numero_bloque_indireccion = encontrar_bloque_libre();
 	primer_digito = dest_ind -> numero_bloque_indireccion / 16777216;
 	segundo_digito = dest_ind -> numero_bloque_indireccion / 65536;
 	tercer_digito = dest_ind -> numero_bloque_indireccion / 256;
@@ -256,7 +211,6 @@ int cz_cp(char* orig, char* dest){
 	// CASO QUE OCUPE INDIRECCION
 
 	if (dest_ind -> file_size > 1024 * 252) {
-		dest_ind -> numero_bloque_indireccion = encontrar_bloque_libre();
 		setear_bitmap_ocupado(dest_ind -> numero_bloque_indireccion);
 		int aux = 1024 * 252; //va avanzando de a 1024
 		fseek(fptr, dest_ind -> numero_bloque_indireccion * 1024, SEEK_SET);
@@ -280,6 +234,53 @@ int cz_cp(char* orig, char* dest){
 	return 0;
 
 }
+
+int cz_rm(char* filename) {
+	for (int i=0; i<64; i++) {
+		if (direct -> entradas[i] -> valid && strcmp(direct -> entradas[i] -> name, filename) == 0) {
+			direct -> entradas[i] -> valid = 0;
+			fprintf(stderr, "Se eliminó %s\n", filename);
+			Indice* ind = create_Indice(get_block(direct -> entradas[i] -> puntero));
+			for (int j=0; j<252;j++) {
+				if (ind -> file_size > 1024*j) {
+					setear_bitmap_libre(ind -> bloques[j]);
+				}
+			}
+			int y = 252*1024;
+			while (y < ind -> file_size) {
+				setear_bitmap_libre(ind -> indireccion -> bloques[y/1024 - 252]);
+				y += 1024;
+			}
+			return 0;
+		}
+	}
+	fprintf(stderr, "No se encontró a %s\n", filename);
+	return -1;
+}
+
+int cz_mv(char* orig, char *dest) {
+	char origen[11];
+	Dir_Entrada* entrada_origen;
+	char destino[11];
+	for (int i=0; i<64; i++) {
+		if (direct -> entradas[i] -> valid && strcmp(direct -> entradas[i] -> name, dest) == 0) {
+			fprintf(stderr, "Nombre ya existente: %s ya es un archivo\n", dest);
+			return -1;
+		}
+	}
+	for (int i=0; i<64; i++) {
+		if (direct -> entradas[i] -> valid && strcmp(direct -> entradas[i] -> name, orig) == 0) {
+			strcpy(direct -> entradas[i] -> name, dest);
+			cambiar_nombre_en_disco(i, dest);
+			return 0;
+		}
+	}
+	fprintf(stderr, "No se encontró el archivo con nombre %s \n",orig);
+	return -1;
+}
+
+
+
 
 int cz_exists(char* filename) {
 	for (int i=0; i<64; i++) {
@@ -600,12 +601,14 @@ void escribir_nueva_entrada(char * filename, int numero_entrada, int n_bloque){
 
 	// escribo nombre
 	int bytes_nombres = fwrite(filename,sizeof(char),11,fp);
-
+	printf("Numero de bloque: %i\n", n_bloque);
 	unsigned char primer_digito;
 	unsigned char segundo_digito;
-	primer_digito = (unsigned char) n_bloque / 256;
-	segundo_digito = (unsigned char) n_bloque % 256;
-	fseek(fp, numero_entrada*16 + 14, SEEK_SET);
+	primer_digito =  n_bloque / 256;
+	segundo_digito = n_bloque % 256;
+	fseek(fp, numero_entrada* 16 + 14, SEEK_SET);
+	printf("primer digito : %u \n", primer_digito);
+	printf("segundo digito : %u \n", segundo_digito);
 	fwrite(&primer_digito, sizeof(unsigned char), 1,fp);
 	fwrite(&segundo_digito, sizeof(unsigned char), 1,fp);
 	fclose(fp);
