@@ -50,17 +50,17 @@ int main(int argc, char *argv[])
     // cz_rm("new4.txt");
     // cz_rm("new5.txt");
 
-    char buffer3[445593];
-    czFILE * file = cz_open("test.txt", 'r');
-    cz_read(file, buffer3, 445593);
-    printf("%s\n", buffer3);
+    // char buffer3[445593];
+    // czFILE * file = cz_open("test.txt", 'r');
+    // cz_read(file, buffer3, 445593);
+    // printf("%s\n", buffer3);
 
 
 
 
 
 
-
+	cz_rm("smile.png");
     cz_ls();
 
 

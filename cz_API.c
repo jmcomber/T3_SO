@@ -239,6 +239,20 @@ int cz_rm(char* filename) {
 	for (int i=0; i<64; i++) {
 		if (direct -> entradas[i] -> valid && strcmp(direct -> entradas[i] -> name, filename) == 0) {
 			direct -> entradas[i] -> valid = 0;
+
+			// escribir 0 en bit valido
+			FILE * fptr;
+			if ((fptr = fopen(nombre_disco,"rb+")) == NULL){
+			   fprintf(stderr, "Error! opening file");
+			   // Program exits if the file pointer returns NULL.
+			   exit(1);
+			}
+			unsigned char invalid = 0;
+			fseek(fptr, 16 * i, SEEK_SET);
+			fwrite(&invalid, sizeof(unsigned char), 1, fptr);
+		   	fclose(fptr);
+
+
 			fprintf(stderr, "Se eliminó %s\n", filename);
 			Indice* ind = create_Indice(get_block(direct -> entradas[i] -> puntero));
 			for (int j=0; j<252;j++) {
